@@ -30,11 +30,8 @@ void show(stack* top) {
 }
 
 int main() {
-    stack* s = NULL;
-    push(&s, 1);
-    push(&s, 2);
-    show(s);
-    printf("\n");
-    pop(&s); 
-    show(s);
+    FILE* in = fopen("in.txt", "r");
+    FILE* out = fopen("out.txt", "w");
+    if ((in == NULL) || (out == NULL)) exit(0);
+    
 }
