@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #define LEN_OPPR 8
+#define PRIOR(o) op_prior[o % LEN_OPPR].priority
 
 const struct {const char operator; const int priority;} op_prior[LEN_OPPR] = {
     ['+' % LEN_OPPR] = {'+', 1},
@@ -43,7 +44,7 @@ void show(stack* top, char* x) {
 char suntax_is_normal(FILE* in) {
     char c;
     c = fgetc(in);
-    while(!feof(in)) {
+    while((c != '\n') && !feof(in)) {
         if (!( (c >= '0') && (c <= '9') ))
             if (op_prior[c % LEN_OPPR].operator != c)
                 return 0;
@@ -64,7 +65,7 @@ void get_next_object(FILE* in, int* obj, char* it_num) {
             *obj += c - '0';
         } while (((c = fgetc(in)) >= '0') && (c <= '9'));
         
-        if(!feof(in))
+        if((c != '\n') && !feof(in))
             fseek(in, ftell(in) - 1, SEEK_SET);
     }
     else {
@@ -84,13 +85,19 @@ int calc(FILE* in, FILE* out) {
 
     char it_num;
     int obj;
-    while (!feof(in)) {
-        get_next_object(in, &obj, &it_num);
+    get_next_object(in, &obj, &it_num);
+    while ((obj != '\n') && !feof(in)) {
         if (it_num)
             push(&numbers, obj);
         else {
-            push(&operators, obj);
+            if ((operators == NULL) || (PRIOR(operators->data) < PRIOR(obj))) {
+                push(&operators, obj);
+            }
+            else {
+                //if ( )
+            }
         }
+        get_next_object(in, &obj, &it_num);
     }
 
     show(numbers, "%d ");
