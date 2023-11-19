@@ -32,10 +32,10 @@ void pop(stack** top) {
     *top = tmp;
 }
 
-void show(stack* top) {
+void show(stack* top, char* x) {
     stack* tmp = top;
     while (tmp != NULL) {
-        printf("%d ", tmp->data);
+        printf(x, tmp->data);
         tmp = tmp->next;
     }
 }
@@ -49,7 +49,28 @@ char suntax_is_normal(FILE* in) {
                 return 0;
         c = fgetc(in);
     }
+    fseek(in, 0, SEEK_SET);
     return 1;
+}
+
+void get_next_object(FILE* in, int* obj, char* it_num) {
+    char c = fgetc(in);
+    if ((c >= '0') && (c <= '9')) {
+        *it_num = 1;
+        *obj = 0;
+        
+        do {
+            *obj *= 10;
+            *obj += c - '0';
+        } while (((c = fgetc(in)) >= '0') && (c <= '9'));
+        
+        if(!feof(in))
+            fseek(in, ftell(in) - 1, SEEK_SET);
+    }
+    else {
+        *it_num = 0;
+        *obj = c;
+    }
 }
 
 int calc(FILE* in, FILE* out) {
@@ -61,6 +82,19 @@ int calc(FILE* in, FILE* out) {
         exit(0);
     }
 
+    char it_num;
+    int obj;
+    while (!feof(in)) {
+        get_next_object(in, &obj, &it_num);
+        if (it_num)
+            push(&numbers, obj);
+        else {
+            push(&operators, obj);
+        }
+    }
+
+    show(numbers, "%d ");
+    show(operators, "%c ");
     
     
 }
