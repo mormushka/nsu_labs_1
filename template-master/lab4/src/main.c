@@ -2,9 +2,10 @@
 #include <stdlib.h>
 
 #define LEN_OPPR 8
+#define END_IN(CHAR, IN) (((CHAR) == '\n') || feof(IN))
 #define HESH(OBJ) (OBJ) % LEN_OPPR
 #define PRIOR(OBJ) op_inf[(OBJ) % LEN_OPPR].priority
-#define CALC_ON_STACK(N, O) push(&N, op_inf[HESH(pick_up(&O))].func(pick_up(&N), pick_up(&N)));
+#define CALC_ON_STACK(NUMS, OPRS) push(&NUMS, op_inf[HESH(pick_up(&OPRS))].func(pick_up(&NUMS), pick_up(&NUMS)));
 
 int f_plus     (int a, int b) { return a + b; }
 int f_minus    (int a, int b) { return a - b; }
@@ -17,7 +18,7 @@ const struct {const char operator; const int priority; int (*const func) (int, i
     [HESH('*')] = {'*', 2, f_myltiply},
     [HESH('/')] = {'/', 2, f_division},
     [HESH('(')] = {'(', 0},
-    [HESH(')')] = {')', 0}
+    [HESH(')')] = {')', -1}
 };
 
 typedef struct STACK {
@@ -57,7 +58,7 @@ void show(stack* top, char* x) {
 char suntax_is_normal(FILE* in) {
     char c;
     c = fgetc(in);
-    while((c != '\n') && !feof(in)) {
+    while(!END_IN(c, in)) {
         if (!( (c >= '0') && (c <= '9') ))
             if (op_inf[c % LEN_OPPR].operator != c)
                 return 0;
@@ -78,7 +79,7 @@ void get_next_object(FILE* in, int* obj, char* it_num) {
             *obj += c - '0';
         } while (((c = fgetc(in)) >= '0') && (c <= '9'));
         
-        if((c != '\n') && !feof(in))
+        if(!END_IN(c, in))
             fseek(in, ftell(in) - 1, SEEK_SET);
     }
     else {
@@ -99,19 +100,20 @@ int calc(FILE* in, FILE* out) {
     char it_num;
     int obj;
     get_next_object(in, &obj, &it_num);
-    while (1) {
-        if ((obj == '\n') || feof(in)) {
-            CALC_ON_STACK(numbers, operators);
-            break;
-        }
+    // no brackets yet
+    for (;;) {
         if (it_num)
             push(&numbers, obj);
         else {
-            if ((operators == NULL) || (PRIOR(operators->data) < PRIOR(obj))) {
-                push(&operators, obj);
+            if (END_IN(obj, in)) {
+                while (operators != NULL)
+                    CALC_ON_STACK(numbers, operators);
+                break;
             }
             else {
-                CALC_ON_STACK(numbers, operators);
+                while ((operators != NULL) && (PRIOR(obj) <= PRIOR(operators->data)))
+                    CALC_ON_STACK(numbers, operators);
+                push(&operators, obj);
             }
         }
         get_next_object(in, &obj, &it_num);
@@ -119,7 +121,6 @@ int calc(FILE* in, FILE* out) {
 
     show(numbers, "%d ");
     show(operators, "%c ");
-    
 }
 
 int main() {
