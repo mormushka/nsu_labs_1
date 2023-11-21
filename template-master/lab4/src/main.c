@@ -53,14 +53,6 @@ int pick_up(stack** top) {
     return tmp;
 }
 
-void show(stack* top, char* x) {
-    stack* tmp = top;
-    while (tmp != NULL) {
-        printf(x, tmp->data);
-        tmp = tmp->next;
-    }
-}
-
 char suntax_is_normal(FILE* in) {
     char c;
     c = fgetc(in);
@@ -73,7 +65,7 @@ char suntax_is_normal(FILE* in) {
         c = fgetc(in);
     }
     fseek(in, 0, SEEK_SET);
-    return 1 * f;
+    return f;
 }
 
 void get_next_object(FILE* in, int* obj, char* it_num) {
@@ -81,7 +73,7 @@ void get_next_object(FILE* in, int* obj, char* it_num) {
     if ((c >= '0') && (c <= '9')) {
         *it_num = 1;
         *obj = 0;
-        
+
         do {
             *obj *= 10;
             *obj += c - '0';
@@ -100,18 +92,14 @@ int calc(FILE* in) {
     stack* numbers = NULL;
     stack* operators = NULL; 
 
-    if (!suntax_is_normal(in)) 
-        STOP_WORK("syntax error");
+    if (!suntax_is_normal(in)) STOP_WORK("syntax error");
 
     char it_num;
     int obj;
     get_next_object(in, &obj, &it_num);
-    
     for (;;) {
-        if (it_num) {
+        if (it_num)
             push(&numbers, obj);
-            get_next_object(in, &obj, &it_num);
-        }
         else {
             if (END_IN(obj, in)) {
                 while (operators != NULL)
@@ -122,33 +110,25 @@ int calc(FILE* in) {
                 push(&operators, obj);
                 get_next_object(in, &obj, &it_num);
                 if (obj == ')') STOP_WORK("syntax error");
+                continue;
             }
             else if (obj == ')') {
                 if ((operators == NULL)) STOP_WORK("syntax error");
-                if (operators->data == '(') {
-                    pop(&operators);
+                while (operators->data != '(') {
+                    CALC_ON_STACK(numbers, operators);
+                    if (operators == NULL) STOP_WORK("syntax error");
                 }
-                else {
-                    while (operators->data != '(') {
-                        CALC_ON_STACK(numbers, operators);
-                        if (operators == NULL) STOP_WORK("syntax error");
-                    }
-                    pop(&operators);
-                }
-                get_next_object(in, &obj, &it_num);
+                pop(&operators);
             }
             else {
                 while ((operators != NULL) && (PRIOR(obj) <= PRIOR(operators->data)))
                     CALC_ON_STACK(numbers, operators);
                 push(&operators, obj);
-                get_next_object(in, &obj, &it_num);
             }
         }
+        get_next_object(in, &obj, &it_num);
     }
-
     return numbers->data;
-    //show(numbers, "%d ");
-    //show(operators, "%c ");
 }
 
 int main() {
@@ -156,5 +136,5 @@ int main() {
     if ((in == NULL)) exit(0);
 
     printf("%d", calc(in));
-
+    return 0;
 }
