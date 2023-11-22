@@ -14,7 +14,8 @@
 #define CALC_ON_STACK(NUMS, OPRS) { \
     if ((NUMS == NULL) || (NUMS->next == NULL)) STOP_WORK("syntax error");\
     if (OPRS == NULL) STOP_WORK("syntax error");\
-    push(&NUMS, op_inf[pick_up(&OPRS)].func(pick_up(&NUMS), pick_up(&NUMS))); \
+    int b = pick_up(&NUMS);\
+    push(&NUMS, op_inf[HESH(pick_up(&OPRS))].func(pick_up(&NUMS), b)); \
 }
 
 int f_plus     (int a, int b) { return a + b; }
@@ -115,7 +116,9 @@ int calc(FILE* in) {
     }
     if (numbers == NULL)
         STOP_WORK("syntax error");
-    return numbers->data;
+    int tmp = numbers->data;
+    free(numbers);
+    return tmp;
 }
 
 int main() {
