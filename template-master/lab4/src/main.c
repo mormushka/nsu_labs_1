@@ -50,7 +50,7 @@ void pop(stack** top) {
     if (*top == NULL)
         return;
     stack* tmp = (*top)->next;
-    free(top);
+    free(*top);
     *top = tmp;
 }
 
@@ -98,7 +98,7 @@ int calc(FILE* in) {
                 continue;
             }
             else if (obj == ')') {
-                if ((operators == NULL)) STOP_WORK("syntax error");
+                if (operators == NULL) STOP_WORK("syntax error");
                 while (operators->data != '(') {
                     CALC_ON_STACK(numbers, operators);
                     if (operators == NULL) STOP_WORK("syntax error");
@@ -120,7 +120,7 @@ int calc(FILE* in) {
 
 int main() {
     FILE* in = fopen("in.txt", "r");
-    if ((in == NULL)) exit(0);
+    if (in == NULL) exit(0);
 
     printf("%d", calc(in));
     return 0;
