@@ -9,7 +9,8 @@
 #define CALC_ON_STACK(NUMS, OPRS) { \
     if ((NUMS == NULL) || (NUMS->next == NULL)) STOP_WORK("syntax error");\
     if (OPRS == NULL) STOP_WORK("syntax error");\
-    push(&NUMS, op_inf[HESH(pick_up(&OPRS))].func(pick_up(&NUMS), pick_up(&NUMS))); \
+    int b = pick_up(&NUMS);\
+    push(&NUMS, op_inf[HESH(pick_up(&OPRS))].func(pick_up(&NUMS), b)); \
 }
 
 int f_plus     (int a, int b) { return a + b; }
@@ -43,7 +44,7 @@ void pop(stack** top) {
     if (*top == NULL)
         return;
     stack* tmp = (*top)->next;
-    free(top);
+    free(*top);
     *top = tmp;
 }
 
@@ -113,7 +114,7 @@ int calc(FILE* in) {
                 continue;
             }
             else if (obj == ')') {
-                if ((operators == NULL)) STOP_WORK("syntax error");
+                if (operators == NULL) STOP_WORK("syntax error");
                 while (operators->data != '(') {
                     CALC_ON_STACK(numbers, operators);
                     if (operators == NULL) STOP_WORK("syntax error");
@@ -128,13 +129,17 @@ int calc(FILE* in) {
         }
         get_next_object(in, &obj, &it_num);
     }
-    return numbers->data;
+    if (numbers == NULL)
+        STOP_WORK("syntax error");
+    int tmp = numbers->data;
+    free(numbers);
+    return tmp;
 }
 
 int main() {
     FILE* in = fopen("in.txt", "r");
-    if ((in == NULL)) exit(0);
+    if (in == NULL) exit(0);
 
     printf("%d", calc(in));
-    return 0;
+    exit(0);
 }
