@@ -123,5 +123,5 @@ int main() {
     if (in == NULL) exit(0);
 
     printf("%d", calc(in));
-    return 0;
+    exit(0);
 }
