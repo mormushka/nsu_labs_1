@@ -2,37 +2,28 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define J_MINUS(J, J_NEGATIVE) {\
-    if (J != 0) {\
-        J--;\
-    } else {\
-        J_NEGATIVE = 1;\
-        break;\
-    }\
-}
-
 void swap(int* a, int* b) {
     int tmp = *a;
     *a = *b;
     *b = tmp;
 }
 
-void quick_sort_m(int* a, size_t left, size_t right) {
-    if (right > left) {
-        char j_negative = 0;
-        int p = a[(rand() * rand()) % (right - left + 1) + left];
-        size_t i = left, j = right;
-        while ((i <= j) && !j_negative) {
+void quick_sort_m(int* a, size_t l, size_t r) {
+    if (r > l) {
+        int p = a[rand() % (r - l + 1) + l];
+        size_t i = l, j = r;
+        while ((i <= j) && (j <= r)) {
             while (a[i] < p) i++;
-            while (a[j] > p) J_MINUS(j, j_negative);
-            if ((i <= j) && !j_negative) {
+            while ((a[j] > p) && (j <= r)) j--;
+            if ((i <= j) && (j <= r)) {
                 swap(&a[i], &a[j]);
                 i++;
-                J_MINUS(j, j_negative); 
+                j--;
             }
         }
-        quick_sort_m(a, left, j);
-        quick_sort_m(a, i, right);
+        quick_sort_m(a, i, r);
+        if (j > r) return;
+        quick_sort_m(a, l, j);
     }
 }
 
