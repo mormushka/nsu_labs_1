@@ -37,6 +37,8 @@ int main()
 {
     FILE* in = fopen("in.txt", "r");
     FILE* out = fopen("out.txt", "w");
+    if ((in == NULL) || (out == NULL))
+        exit(0);
 
     size_t len;
     if (!fscanf(in, "%zu", &len)) {
