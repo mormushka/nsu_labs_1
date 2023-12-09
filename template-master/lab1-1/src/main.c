@@ -2,19 +2,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {max_pattern_len = 16};
+#define MAX_PATTERN_LEN 16
+#define BUFFER_SIZE MAX_PATTERN_LEN
 
-typedef struct TEXT_INFO{
-    char str[max_pattern_len + 2];
+typedef struct {
+    char str[MAX_PATTERN_LEN + 2];
     int len;
     unsigned hash;
     char bad;
-} text_info;
+} search_pattern;
 
-typedef struct SEARCH_FIELD {
-    text_info text_inf;
+typedef struct {
+    char data[BUFFER_SIZE];
+    int head;
+} rolling_buffer;
+
+typedef struct {
+    rolling_buffer r_buffer;
+    int len;
+    unsigned hash;
+    char bad;
     size_t index;
-    char first_char;
     FILE* in;
     unsigned mult_last_char;
 } search_field;
@@ -28,60 +36,56 @@ unsigned hash_str(const char* str, int len) { //H(C0, ..., CN-1) = СУММА (C
     return hash;
 }
 
-text_info create_s_pattern(FILE* in) {
-    text_info tmp = {.str = {0}};
-    if (fgets(tmp.str, max_pattern_len + 2, in) == 0)  tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
+search_pattern create_s_pattern(FILE* in) {
+    search_pattern tmp = {.str = {0}};
+    if (fgets(tmp.str, MAX_PATTERN_LEN + 2, in) == 0) tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
     tmp.len = strlen(tmp.str) - 1;
-    tmp.str[tmp.len] = '\0';
     tmp.hash = hash_str(tmp.str, tmp.len);
     return tmp;
 }
 
-search_field create_s_window(text_info* p, FILE* in) {
-    search_field tmp = {.text_inf.str = {0}};
-    if (fgets(tmp.text_inf.str, p->len + 1, in) == 0) tmp.text_inf.bad = 1;
-    tmp.text_inf.hash = hash_str(tmp.text_inf.str, p->len);
-    tmp.text_inf.len = p->len - 1;
-    tmp.first_char = tmp.text_inf.str[0];
+search_field create_s_window(search_pattern* p, FILE* in) {
+    search_field tmp = {.r_buffer.data = {0}};
+    if (!fread(tmp.r_buffer.data, 1, p->len, in)) tmp.bad = 1;
+    tmp.len = tmp.r_buffer.head = tmp.index = p->len;
+    tmp.hash = hash_str(tmp.r_buffer.data, p->len);
     tmp.mult_last_char = exp1(3, p->len - 1);
     tmp.in = in;
     return tmp;
 }
 
 void shift_hash( search_field* w ) {
-    w->text_inf.hash = (w->text_inf.hash - ((unsigned char)w->first_char % 3)) / 3\
-    + ((unsigned char)w->text_inf.str[w->text_inf.len] % 3) * w->mult_last_char;
+    w->hash = (w->hash - ((unsigned char)w->r_buffer.data[(w->index - w->len) % BUFFER_SIZE] % 3)) / 3\
+    + ((unsigned char)w->r_buffer.data[(w->index) % BUFFER_SIZE] % 3) * w->mult_last_char;
 }
 
-char print_match(const text_info* p, const search_field* w) {
+char print_match(const search_pattern* p, const search_field* w) {
     for (int i = 0; i < p->len; ++i) {
-        printf("%zu ", w->index + i + 1);
-        if (p->str[i] != w->text_inf.str[i])  
+        printf("%zu ", w->index - p->len + i + 1);
+        if (p->str[i] != w->r_buffer.data[(w->index - w->len + i) % BUFFER_SIZE])  
             return 0;
     }
     return 1;
 }
 
 void move_forward(search_field* w) {
-    memmove(w->text_inf.str, &w->text_inf.str[1], w->text_inf.len);
-    w->text_inf.str[w->text_inf.len] = fgetc(w->in);
-
+    w->r_buffer.data[w->r_buffer.head] = fgetc(w->in);
+    w->r_buffer.head = (w->r_buffer.head + 1) % BUFFER_SIZE;
+    
     shift_hash(w);
-    w->first_char = w->text_inf.str[0];
     ++w->index;
 }
 
+
 void find_substring(FILE* in) {
-    text_info p = create_s_pattern(in);
-    search_field w = create_s_window(&p, in);
-
-    printf("%u ", p.hash);
+    search_pattern p = create_s_pattern(in);
+    search_field w = create_s_window(&p, in); 
+    if (p.bad || w.bad) return;
     
-    if ((p.bad + w.text_inf.bad) > 0)
-        exit(0);
+    printf("%u ", p.hash);
 
-    while (!feof(w.in)) {
-        if (p.hash == w.text_inf.hash)
+    while (!feof(in)) {
+        if (p.hash == w.hash)
             print_match(&p, &w);
         move_forward(&w);
     }
