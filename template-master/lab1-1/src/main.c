@@ -79,10 +79,10 @@ void move_forward(search_field* w) {
 
 void find_substring(FILE* in) {
     search_pattern p = create_s_pattern(in);
-    search_field w = create_s_window(&p, in); 
-    if (p.bad || w.bad) return;
-    
+    search_field w = create_s_window(&p, in);
+
     printf("%u ", p.hash);
+    if (p.bad || w.bad) return;
 
     while (!feof(in)) {
         if (p.hash == w.hash)
