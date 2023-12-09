@@ -2,18 +2,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {max_p_len = 16, w_len = max_p_len * 2};
+enum {max_p_len = 16};
 
-typedef struct SEARCH_PATTERN {
+#define BUFFER_SIZE  (max_p_len * 2)
+
+typedef struct {
     char str[max_p_len + 2];
     int len;
     char bad;
     unsigned shift_table[max_p_len];
 } search_pattern;
 
-typedef struct SEARCH_FIELD {
-    char str[w_len];
-    size_t st_i, end_i;
+typedef struct {
+    char data[BUFFER_SIZE];
+    int head;
+} rolling_buffer;
+
+typedef struct {
+    rolling_buffer r_buffer;
+    size_t end_i; 
+    char bad;
     FILE* in;
 } search_field;
 
@@ -38,44 +46,44 @@ search_pattern create_s_pattern(FILE* in) {
     if (fgets(tmp.str, max_p_len + 2, in) == 0)  tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
     tmp.len = strlen(tmp.str) - 1;
     if (tmp.len == 0) tmp.bad = 1;
-    tmp.str[tmp.len] = '\0';
     fill_shift_table(&tmp);
     return tmp;
 }
 
 search_field create_s_window(FILE* in) {
-    search_field tmp = {.str = {0}};
-    for (int i = 0; i < w_len; ++i) tmp.str[i] = fgetc(in);
-    tmp.st_i = 0; tmp.end_i = w_len - 1;
+    search_field tmp = {.r_buffer.data = {0}};
+    for (int i = 0; i < BUFFER_SIZE; ++i) 
+        tmp.r_buffer.data[i] = fgetc(in);
+    tmp.end_i = BUFFER_SIZE - 1;
     tmp.in = in;
     return tmp;
 }
 
 char getc_window(search_field* w, size_t index) {
     if (index > w->end_i) {
-        memmove(w->str, &w->str[max_p_len], max_p_len);
-        for (int i = 0; i < max_p_len; ++i)
-            w->str[max_p_len + i] = fgetc(w->in);
-        w->st_i += max_p_len; w->end_i += max_p_len;
+        for (int i = 0; i < max_p_len; ++i) {
+            w->r_buffer.data[w->r_buffer.head] = fgetc(w->in);
+            w->r_buffer.head = (w->r_buffer.head + 1) % BUFFER_SIZE;
+        }
+        w->end_i += max_p_len;
     }
-    return w->str[index - w->st_i];
+    return w->r_buffer.data[index % BUFFER_SIZE];
 }
 
 void find_substring(FILE* in) {
     search_pattern p = create_s_pattern(in);
     search_field w = create_s_window(in);
 
+    if (p.bad) return;
+
     for (int i = 0; i < p.len; ++i)
         printf("%u ", p.shift_table[i]);
-    
-    if (p.bad) return;
 
     size_t i = 0;
     unsigned j = 0;
     for(;;) {
         size_t x = i + p.len - j - 1;
-        if (getc_window(&w, x) == EOF) 
-            return;
+        if (getc_window(&w, x) == EOF) return;
 
         if (p.str[j] == getc_window(&w, i)) {
             ++i; ++j;
