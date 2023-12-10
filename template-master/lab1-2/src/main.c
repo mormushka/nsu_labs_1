@@ -2,28 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {max_p_len = 16};
-
-#define BUFFER_SIZE  (max_p_len * 2)
+#define MAX_P_LEN  16
+#define BUFFER_SIZE MAX_P_LEN
 
 typedef struct {
-    char str[max_p_len + 2];
+    char str[MAX_P_LEN + 2];
     int len;
     char bad;
-    unsigned shift_table[max_p_len];
+    unsigned shift_table[MAX_P_LEN];
 } search_pattern;
-
-typedef struct {
-    char data[BUFFER_SIZE];
-    int head;
-} rolling_buffer;
-
-typedef struct {
-    rolling_buffer r_buffer;
-    size_t end_i; 
-    char bad;
-    FILE* in;
-} search_field;
 
 void fill_shift_table(search_pattern* p) {
     int i = 1; int j = 0;
@@ -43,61 +30,56 @@ void fill_shift_table(search_pattern* p) {
 
 search_pattern create_s_pattern(FILE* in) {
     search_pattern tmp = {.str = {0}};
-    if (fgets(tmp.str, max_p_len + 2, in) == 0)  tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
+    if (fgets(tmp.str, MAX_P_LEN + 2, in) == 0) tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
     tmp.len = strlen(tmp.str) - 1;
     if (tmp.len == 0) tmp.bad = 1;
     fill_shift_table(&tmp);
     return tmp;
 }
 
-search_field create_s_window(FILE* in) {
-    search_field tmp = {.r_buffer.data = {0}};
-    for (int i = 0; i < BUFFER_SIZE; ++i) 
-        tmp.r_buffer.data[i] = fgetc(in);
-    tmp.end_i = BUFFER_SIZE - 1;
-    tmp.in = in;
-    return tmp;
-}
-
-char getc_window(search_field* w, size_t index) {
-    if (index > w->end_i) {
-        for (int i = 0; i < max_p_len; ++i) {
-            w->r_buffer.data[w->r_buffer.head] = fgetc(w->in);
-            w->r_buffer.head = (w->r_buffer.head + 1) % BUFFER_SIZE;
-        }
-        w->end_i += max_p_len;
-    }
-    return w->r_buffer.data[index % BUFFER_SIZE];
-}
-
 void find_substring(FILE* in) {
     search_pattern p = create_s_pattern(in);
-    search_field w = create_s_window(in);
-
-    if (p.bad) return;
 
     for (int i = 0; i < p.len; ++i)
         printf("%u ", p.shift_table[i]);
 
+    if (p.bad) return;
+
     size_t i = 0;
     unsigned j = 0;
-    for(;;) {
-        size_t x = i + p.len - j - 1;
-        if (getc_window(&w, x) == EOF) return;
-
-        if (p.str[j] == getc_window(&w, i)) {
+    char c = fgetc(in);
+    int x[2] = {0};
+    while(!feof(in)) {
+        if (p.str[j] == c) {
             ++i; ++j;
+            c = fgetc(in);
         }
         else {
             if (j > 0) {
-                printf("%zu %u ", i + 1 - j, j);
+                if (x[1]) {
+                    printf("%zu %u ", x[0], x[1]);
+                    x[0] = i + 1 - j;
+                    x[1] = j;
+                }
+                else {
+                    x[0] = i + 1 - j;
+                    x[1] = j;
+                }
                 j = p.shift_table[j - 1];
             }
-            else
+            else {
                 ++i;
+                c = fgetc(in);
+            }
         }
     }
-
+    if (j == p.len) {
+        if (x[1]) printf("%zu %u ", x[0], x[1]);
+        printf("%zu %u ", i + 1 - j, j);
+    }
+    if (x[1] == p.len) {
+        printf("%zu %u ", x[0], x[1]);
+    }
 }
 
 int main()
