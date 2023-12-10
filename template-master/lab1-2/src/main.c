@@ -3,17 +3,42 @@
 #include <string.h>
 
 #define MAX_P_LEN  16
-#define BUFFER_SIZE MAX_P_LEN
+#define BUFFER_SIZE 20
 
 typedef struct {
     char str[MAX_P_LEN + 2];
-    int len;
+    unsigned len;
     char bad;
     unsigned shift_table[MAX_P_LEN];
 } search_pattern;
 
+typedef struct {
+    size_t* data;
+    size_t first;
+    size_t free_block;
+    int count;
+} queue;
+
+queue* create_queue(int size) {
+    queue* tmp = (queue*)malloc(sizeof(queue));
+    tmp->data = (size_t*)malloc(sizeof(size_t) * 2 * size);
+    tmp->first = tmp->free_block = tmp->count = 0;
+    return tmp;
+}
+
+void queue_add(queue* q, size_t index, size_t prefix_len) {
+    q->data[(q->free_block++) % BUFFER_SIZE] = index;
+    q->data[(q->free_block++) % BUFFER_SIZE] = prefix_len;
+    q->count++;
+}
+
+void del_first(queue* q) {
+    q->first = (q->first + 2) % BUFFER_SIZE;
+    q->count--;
+}
+
 void fill_shift_table(search_pattern* p) {
-    int i = 1; int j = 0;
+    unsigned i = 1; unsigned j = 0;
     while (p->len > i) {
         if (p->str[j] == p->str[i]) {
             p->shift_table[i] = ++j; ++i;
@@ -40,15 +65,15 @@ search_pattern create_s_pattern(FILE* in) {
 void find_substring(FILE* in) {
     search_pattern p = create_s_pattern(in);
 
-    for (int i = 0; i < p.len; ++i)
+    for (unsigned i = 0; i < p.len; ++i)
         printf("%u ", p.shift_table[i]);
 
     if (p.bad) return;
 
+    queue* q = create_queue(BUFFER_SIZE);
     size_t i = 0;
     unsigned j = 0;
     char c = fgetc(in);
-    int x[2] = {0};
     while(!feof(in)) {
         if (p.str[j] == c) {
             ++i; ++j;
@@ -56,15 +81,7 @@ void find_substring(FILE* in) {
         }
         else {
             if (j > 0) {
-                if (x[1]) {
-                    printf("%zu %u ", x[0], x[1]);
-                    x[0] = i + 1 - j;
-                    x[1] = j;
-                }
-                else {
-                    x[0] = i + 1 - j;
-                    x[1] = j;
-                }
+                queue_add(q, i + 1 - j, j);
                 j = p.shift_table[j - 1];
             }
             else {
@@ -72,14 +89,22 @@ void find_substring(FILE* in) {
                 c = fgetc(in);
             }
         }
+        while ((q->data[q->first] <= i - p.len + 1) && q->count) {
+            printf("%zu %zu ", q->data[q->first], q->data[q->first + 1]);
+            del_first(q);
+        }
     }
+
     if (j == p.len) {
-        if (x[1]) printf("%zu %u ", x[0], x[1]);
-        printf("%zu %u ", i + 1 - j, j);
+        queue_add(q, i + 1 - j, j);
     }
-    if (x[1] == p.len) {
-        printf("%zu %u ", x[0], x[1]);
+    while ((q->data[q->first] <= i - p.len + 1) && q->count) {
+        printf("%zu %zu ", q->data[q->first], q->data[q->first + 1]);
+        del_first(q);
     }
+
+    free(q->data);
+    free(q);
 }
 
 int main()
