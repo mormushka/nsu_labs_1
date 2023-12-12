@@ -61,7 +61,7 @@ char suntax_is_normal(FILE* in) {
     while(!END_IN(c, in)) {
         f = 1;
         if (!( (c >= '0') && (c <= '9') ))
-            if (op_inf[c % LEN_OPPR].operator != c)
+            if (op_inf[HESH(c)].operator != c)
                 return 0;
         c = fgetc(in);
     }
