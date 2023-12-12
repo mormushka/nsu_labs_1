@@ -47,7 +47,7 @@ search_pattern create_s_pattern(FILE* in) {
 search_field create_s_window(search_pattern* p, FILE* in) {
     search_field tmp = {.r_buffer.data = {0}};
     if (!fread(tmp.r_buffer.data, 1, p->len, in)) tmp.bad = 1;
-    tmp.len = tmp.r_buffer.head = tmp.index = p->len;
+    tmp.len = tmp.r_buffer.head = p->len;
     tmp.hash = hash_str(tmp.r_buffer.data, p->len);
     tmp.mult_last_char = exp1(3, p->len - 1);
     tmp.in = in;
@@ -55,14 +55,14 @@ search_field create_s_window(search_pattern* p, FILE* in) {
 }
 
 void shift_hash( search_field* w ) {
-    w->hash = (w->hash - ((unsigned char)w->r_buffer.data[(w->index - w->len) % BUFFER_SIZE] % 3)) / 3\
-    + ((unsigned char)w->r_buffer.data[(w->index) % BUFFER_SIZE] % 3) * w->mult_last_char;
+    w->hash = (w->hash - ((unsigned char)w->r_buffer.data[(w->index) % BUFFER_SIZE] % 3)) / 3\
+    + ((unsigned char)w->r_buffer.data[(w->index + w->len) % BUFFER_SIZE] % 3) * w->mult_last_char;
 }
 
 char print_match(const search_pattern* p, const search_field* w) {
     for (int i = 0; i < p->len; ++i) {
-        printf("%zu ", w->index - p->len + i + 1);
-        if (p->str[i] != w->r_buffer.data[(w->index - w->len + i) % BUFFER_SIZE])  
+        printf("%zu ", w->index + i + 1);
+        if (p->str[i] != w->r_buffer.data[(w->index + i) % BUFFER_SIZE])  
             return 0;
     }
     return 1;
