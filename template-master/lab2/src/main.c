@@ -46,11 +46,14 @@ int perm(char* str, int len) {
 }
 
 int perms(char* str, int len, int num) {
+    if (!is_good(str, len))
+        return 0;
     for(int i = 0; i < num; ++i) {
         if(!perm(str, len)) 
             break;
         printf("%s\n", str);
     }
+    return 1;
 }
 
 int main()
@@ -62,7 +65,10 @@ int main()
     char str[MAX_INPUT + 2];
     int n;
 
-    fscanf(in, "%11[^\n]", str);
+    if (!fscanf(in, "%11[^\n]", str)) {
+        printf("bad input");
+        exit(0);
+    }
     int len = strlen(str);
 
     if (!is_good(str, len) || !fscanf(in, "%d", &n) ) { 
@@ -70,7 +76,10 @@ int main()
         exit(0);
     }
 
-    perms(str, len, n);
+    if (!perms(str, len, n)) {
+        printf("bad input");
+        exit(0);
+    }
 
     exit(0);
 }
