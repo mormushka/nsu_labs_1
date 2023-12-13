@@ -55,8 +55,7 @@ search_field create_s_window(search_pattern* p, FILE* in) {
 }
 
 void shift_hash( search_field* w ) {
-    w->hash = (w->hash - ((unsigned char)w->r_buffer.data[(w->index - w->len) % BUFFER_SIZE] % 3)) / 3\
-    + ((unsigned char)w->r_buffer.data[(w->index) % BUFFER_SIZE] % 3) * w->mult_last_char;
+    w->hash = w->hash / 3 + ((unsigned char)w->r_buffer.data[(w->index) % BUFFER_SIZE] % 3) * w->mult_last_char;
 }
 
 char print_match(const search_pattern* p, const search_field* w) {
