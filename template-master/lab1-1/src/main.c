@@ -46,7 +46,7 @@ search_pattern create_s_pattern(FILE* in) {
 
 search_field create_s_window(search_pattern* p, FILE* in) {
     search_field tmp = {.r_buffer.data = {0}};
-    if (!fread(tmp.r_buffer.data, 1, p->len, in)) tmp.bad = 1;
+    if (!fread(tmp.r_buffer.data, sizeof(char), p->len, in)) tmp.bad = 1;
     tmp.len = tmp.r_buffer.head = tmp.index = p->len;
     tmp.hash = hash_str(tmp.r_buffer.data, p->len);
     tmp.mult_last_char = exp1(3, p->len - 1);
