@@ -71,7 +71,7 @@ int main()
     }
     int len = strlen(str);
 
-    if (!is_good(str, len) || !fscanf(in, "%d", &n) ) { 
+    if (!fscanf(in, "%d", &n) ) { 
         printf("bad input");
         exit(0);
     }
