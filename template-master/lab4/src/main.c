@@ -57,16 +57,16 @@ int pick_up(stack** top) {
 char suntax_is_normal(FILE* in) {
     char c;
     c = fgetc(in);
-    char f = 0;
+    char is_normal = 0;
     while(!END_IN(c, in)) {
-        f = 1;
+        is_normal = 1;
         if (!( (c >= '0') && (c <= '9') ))
             if (op_inf[HESH(c)].operator != c)
                 return 0;
         c = fgetc(in);
     }
     fseek(in, 0, SEEK_SET);
-    return f;
+    return is_normal;
 }
 
 void get_next_object(FILE* in, int* obj, char* it_num) {
