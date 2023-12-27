@@ -15,7 +15,7 @@
     if ((NUMS == NULL) || (NUMS->next == NULL)) STOP_WORK("syntax error");\
     if (OPRS == NULL) STOP_WORK("syntax error");\
     int b = pick_up(&NUMS);\
-    push(&NUMS, op_inf[HESH(pick_up(&OPRS))].func(pick_up(&NUMS), b)); \
+    push(&NUMS, op_inf[pick_up(&OPRS)].func(pick_up(&NUMS), b)); \
 }
 
 int f_plus     (int a, int b) { return a + b; }
