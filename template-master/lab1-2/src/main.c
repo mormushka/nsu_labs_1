@@ -55,7 +55,7 @@ void fill_shift_table(search_pattern* p) {
 
 search_pattern create_s_pattern(FILE* in) {
     search_pattern tmp = {.str = {0}};
-    if (fgets(tmp.str, MAX_P_LEN + 2, in) == 0) tmp.bad = 1; // +2 чтобы даже при макс длинне паттерна прочитать \n
+    if (fgets(tmp.str, MAX_P_LEN + 2, in) == 0) tmp.bad = 1;
     tmp.len = strlen(tmp.str) - 1;
     if (tmp.len == 0) tmp.bad = 1;
     fill_shift_table(&tmp);
