@@ -1,146 +1,160 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-#define MAX_P_LEN 16
-#define BUFFER_SIZE 20
+#define MAX_SAMPLE_LEN 16
+#define MAX_STRING_LEN 256
 
-typedef struct
+typedef struct t_string
 {
-    char str[MAX_P_LEN + 2];
-    unsigned len;
-    char bad;
-    unsigned shift_table[MAX_P_LEN];
-} search_pattern;
+    int current_index;
+    int len;
+    char line[MAX_STRING_LEN];
+} t_string;
 
-typedef struct
+t_string create_string()
 {
-    size_t *data;
-    size_t first;
-    size_t free_block;
-    int count;
-} queue;
+    t_string tmp = {
+        .current_index = 0,
+        .len = 0,
+        .line = { 0 }
+    };
 
-queue *create_queue(int size)
-{
-    queue *tmp = (queue *)malloc(sizeof(queue));
-    tmp->data = (size_t *)malloc(sizeof(size_t) * 2 * size);
-    tmp->first = tmp->free_block = tmp->count = 0;
     return tmp;
 }
 
-void queue_add(queue *q, size_t index, size_t prefix_len)
+int input_sample(t_string* str)
 {
-    q->data[(q->free_block++) % BUFFER_SIZE] = index;
-    q->data[(q->free_block++) % BUFFER_SIZE] = prefix_len;
-    q->count++;
-}
-
-void del_first(queue *q)
-{
-    q->first = (q->first + 2) % BUFFER_SIZE;
-    q->count--;
-}
-
-void fill_shift_table(search_pattern *p)
-{
-    unsigned i = 1;
-    unsigned j = 0;
-    while (p->len > i)
+    for (int i = 0; i < MAX_SAMPLE_LEN + 1; ++i)
     {
-        if (p->str[j] == p->str[i])
+        char c = 0;
+        if (fread(&c, sizeof(char), 1, stdin) != 1)
         {
-            p->shift_table[i] = ++j;
-            ++i;
+            return EXIT_FAILURE;
         }
-        else
+
+        if (c == '\n')
         {
-            if (j == 0)
-            {
-                p->shift_table[i] = 0;
-                ++i;
-            }
-            else
-                j = p->shift_table[j - 1];
+            str->len = i;
+            return EXIT_SUCCESS;
         }
+
+        str->line[i] = c;
     }
+
+    return EXIT_FAILURE;
 }
 
-search_pattern create_s_pattern(FILE *in)
+void input_str(t_string* str)
 {
-    search_pattern tmp = {.str = {0}};
-    if (fgets(tmp.str, MAX_P_LEN + 2, in) == 0)
-        tmp.bad = 1;
-    tmp.len = strlen(tmp.str) - 1;
-    if (tmp.len == 0)
-        tmp.bad = 1;
-    fill_shift_table(&tmp);
-    return tmp;
+    str->len = (int)fread(str->line, sizeof(char), MAX_STRING_LEN, stdin);
+    str->current_index = 0;
 }
 
-void find_substring(FILE *in)
+void prefix_function(int* shift_table, t_string* sample) 
 {
-    search_pattern p = create_s_pattern(in);
-
-    for (unsigned i = 0; i < p.len; ++i)
-        printf("%u ", p.shift_table[i]);
-
-    if (p.bad)
-        return;
-
-    queue *q = create_queue(BUFFER_SIZE);
-    size_t i = 0;
-    unsigned j = 0;
-    char c = fgetc(in);
-    while (!feof(in))
+    for (int i = 1; i < sample->len; ++i)
     {
-        if (p.str[j] == c)
+		int j = shift_table[i - 1];
+		while (j > 0 && sample->line[i] != sample->line[j])
         {
-            ++i;
+			j = shift_table[j-1];
+        }
+
+        if (sample->line[i] == sample->line[j])
+        {
             ++j;
-            c = fgetc(in);
         }
-        else
+
+		shift_table[i] = j;
+	}
+}
+
+void print_shift_table(int sample_len, int* shift_table)
+{
+    for (int i = 0; i < sample_len; ++i)
+    {
+        printf("%d ", shift_table[i]);
+    }
+}
+
+void print_protokol(int position, int len)
+{
+    printf("%d %d ", position, len);
+}
+
+int shift_str(int shift, int sample_len, t_string* string)
+{
+    if (string->current_index + sample_len + shift > string->len)
+    {
+        int shiftedSymCount = string->len - string->current_index - shift;
+        for (int i = 0; i < shiftedSymCount; ++i)
         {
-            if (j > 0)
-            {
-                queue_add(q, i + 1 - j, j);
-                j = p.shift_table[j - 1];
-            }
-            else
-            {
-                ++i;
-                c = fgetc(in);
-            }
+            string->line[i] = string->line[string->current_index + shift + i];
         }
-        while ((q->data[q->first] <= i - p.len + 1) && q->count)
-        {
-            printf("%zu %zu ", q->data[q->first], q->data[q->first + 1]);
-            del_first(q);
-        }
+
+        string->len = shiftedSymCount + (int)fread(string->line + shiftedSymCount, sizeof(char), MAX_STRING_LEN - shiftedSymCount, stdin);
+        string->current_index = 0;
+        return (string->len > sample_len);
     }
 
-    if (j == p.len)
-    {
-        queue_add(q, i + 1 - j, j);
-    }
-    while ((q->data[q->first] <= i - p.len + 1) && q->count)
-    {
-        printf("%zu %zu ", q->data[q->first], q->data[q->first + 1]);
-        del_first(q);
+    string->current_index += shift;
+    return 1;
+}
+
+void kmp(t_string* sample) 
+{
+    int shift_table[MAX_SAMPLE_LEN] = { 0 };
+    prefix_function(shift_table, sample);
+    print_shift_table(sample->len, shift_table);
+    
+    t_string str = create_string();
+    input_str(&str);
+
+    if (sample->len > str.len)
+    {   
+        return;
     }
 
-    free(q->data);
-    free(q);
+    int position = 1;
+
+    while (1)
+    {
+        int matched_len = 0;
+        while (matched_len < sample->len && sample->line[sample->current_index + matched_len] == str.line[str.current_index + matched_len])
+        {
+            ++matched_len;
+        }
+
+        int shift = 1;
+        if (matched_len != 0)
+        {
+            shift = matched_len - shift_table[matched_len - 1];
+            print_protokol(position, matched_len);
+        }
+
+        position += shift;
+        if (!shift_str(shift, sample->len, &str))
+        {
+            return;
+        }
+    }
 }
 
 int main()
 {
-    FILE *in = fopen("in.txt", "r");
-    if (in == NULL)
-        exit(0);
+    //FILE* in = freopen("in.txt", "r", stdin);
+    t_string sample = create_string();
+    if (input_sample(&sample)) 
+    {
+        return EXIT_FAILURE;
+    }
 
-    find_substring(in);
+    if (sample.len == 0) 
+    {
+        return EXIT_SUCCESS;
+    }
 
-    exit(0);
+    kmp(&sample);
+
+    return EXIT_SUCCESS;
 }
