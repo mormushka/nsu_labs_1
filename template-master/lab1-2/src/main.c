@@ -2,21 +2,21 @@
 #include <stdlib.h>
 
 #define MAX_SAMPLE_LEN 16
-#define MAX_STRING_LEN 256
+#define MAX_STR_LEN 256
 
 typedef struct t_string
 {
     int current_index;
     int len;
-    char line[MAX_STRING_LEN];
+    char* line;
 } t_string;
 
-t_string create_string()
+t_string create_string(int len)
 {
     t_string tmp = {
         .current_index = 0,
         .len = 0,
-        .line = { 0 }
+        .line = (char*)malloc(len * sizeof(char))
     };
 
     return tmp;
@@ -46,7 +46,7 @@ int input_sample(t_string* str)
 
 void input_str(t_string* str)
 {
-    str->len = (int)fread(str->line, sizeof(char), MAX_STRING_LEN, stdin);
+    str->len = (int)fread(str->line, sizeof(char), MAX_STR_LEN, stdin);
     str->current_index = 0;
 }
 
@@ -86,13 +86,13 @@ int shift_str(int shift, int sample_len, t_string* string)
 {
     if (string->current_index + sample_len + shift > string->len)
     {
-        int shiftedSymCount = string->len - string->current_index - shift;
-        for (int i = 0; i < shiftedSymCount; ++i)
+        int shifted_sum_count = string->len - string->current_index - shift;
+        for (int i = 0; i < shifted_sum_count; ++i)
         {
             string->line[i] = string->line[string->current_index + shift + i];
         }
 
-        string->len = shiftedSymCount + (int)fread(string->line + shiftedSymCount, sizeof(char), MAX_STRING_LEN - shiftedSymCount, stdin);
+        string->len = shifted_sum_count + (int)fread(string->line + shifted_sum_count, sizeof(char), MAX_STR_LEN - shifted_sum_count, stdin);
         string->current_index = 0;
         return (string->len > sample_len);
     }
@@ -103,15 +103,21 @@ int shift_str(int shift, int sample_len, t_string* string)
 
 void kmp(t_string* sample) 
 {
-    int shift_table[MAX_SAMPLE_LEN] = { 0 };
+    if (sample->len == 0) 
+    {
+        return;
+    }
+
+    int shift_table[MAX_SAMPLE_LEN] = {0};
     prefix_function(shift_table, sample);
     print_shift_table(sample->len, shift_table);
     
-    t_string str = create_string();
+    t_string str = create_string(MAX_STR_LEN);
     input_str(&str);
 
     if (sample->len > str.len)
     {   
+        free(str.line);
         return;
     }
 
@@ -135,6 +141,7 @@ void kmp(t_string* sample)
         position += shift;
         if (!shift_str(shift, sample->len, &str))
         {
+            free(str.line);
             return;
         }
     }
@@ -143,18 +150,15 @@ void kmp(t_string* sample)
 int main()
 {
     //FILE* in = freopen("in.txt", "r", stdin);
-    t_string sample = create_string();
+    t_string sample = create_string(MAX_SAMPLE_LEN);
     if (input_sample(&sample)) 
     {
+        free(sample.line);
         return EXIT_FAILURE;
-    }
-
-    if (sample.len == 0) 
-    {
-        return EXIT_SUCCESS;
     }
 
     kmp(&sample);
 
+    free(sample.line);
     return EXIT_SUCCESS;
 }
