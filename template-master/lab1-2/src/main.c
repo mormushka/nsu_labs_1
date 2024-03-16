@@ -24,7 +24,6 @@ typedef struct
 {
     nodeQ *first;
     nodeQ *last;
-    size_t count;
 } queue;
 
 void queue_add(queue *q, int data1, int data2)
@@ -43,7 +42,6 @@ void queue_add(queue *q, int data1, int data2)
         q->last->next = tmp;
         q->last = tmp;
     }
-    q->count++;
 }
 
 void del_first(queue *q)
@@ -62,7 +60,6 @@ void del_first(queue *q)
             q->first = NULL;
             q->last = NULL;
         }
-        q->count--;
     }
 }
 
@@ -162,7 +159,7 @@ void find_substring(FILE *in)
                 c = fgetc(in);
             }
         }
-        while (q.count && (q.first->data1 <= i - p.len + 1))
+        while (q.first && (q.first->data1 <= i - p.len + 1))
         {
             printf("%zu %zu ", q.first->data1, q.first->data2);
             del_first(&q);
@@ -173,7 +170,7 @@ void find_substring(FILE *in)
     {
         queue_add(&q, i + 1 - j, j);
     }
-    while (q.count && (q.first->data1 <= i - p.len + 1))
+    while (q.first && (q.first->data1 <= i - p.len + 1))
     {
         printf("%zu %zu ", q.first->data1, q.first->data2);
         del_first(&q);
