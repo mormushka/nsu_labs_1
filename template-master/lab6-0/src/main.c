@@ -30,12 +30,6 @@ typedef struct tavl
     struct tavl *right;
 } tavl;
 
-typedef struct form 
-{
-    tavl* tree;
-    char error;
-} form;
-
 tavl* allocate_avl_node(t_memory* memory)
 {
     if (memory->count == memory->index)
@@ -139,9 +133,8 @@ void insert(int value, tavl** t, t_memory* memory)
     *t = balance(*t);
 }
 
-form input_tree(int tree_size, t_memory* memory)
+tavl* input_tree(int tree_size, t_memory* memory)
 {
-    form form = {0};
     tavl* tree = NULL;
 
     for (int i = 0; i < tree_size; ++i)
@@ -150,16 +143,12 @@ form input_tree(int tree_size, t_memory* memory)
         if (scanf("%d", &value) <= 0)
         {
             fprintf(stderr, "Input error %d\n", __LINE__);
-            form.error = 1;
-            form.tree = tree;
-            return form;
         }
 
         insert(value, &tree, memory);
     }
 
-    form.tree = tree;
-    return form;
+    return tree;
 }
 
 int main()
@@ -178,14 +167,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    form form = input_tree(count, &memory);
-    if (form.error) 
-    {
-        destroy_memory(&memory);
-        return EXIT_FAILURE;
-    }
-    tavl* tree = form.tree;
-
+    tavl* tree = input_tree(count, &memory);
     printf("%d", height(tree));
 
     destroy_memory(&memory);
